@@ -1,25 +1,102 @@
 # Claude Skills
 
-Claude Skills is a Python CLI that inventories Claude-related capabilities on the current machine and explains:
+[![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/)
+[![Tests](https://github.com/SII-penguins/claude-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/SII-penguins/claude-skills/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
-- 有什么能力
-- 来自哪里
-- 现在是否可调用
-- 它是本地存在、已启用，还是仅 marketplace 可见
+A Python CLI for inventorying Claude-related capabilities on a local machine and explaining:
 
-安装后的命令名是：`claude-skill`
+- what capabilities exist
+- where they come from
+- whether they are likely callable now
+- whether they are locally installed, enabled, builtin, or only visible in marketplace metadata
 
-## 它会盘点哪些来源
+- 中文说明：[`README_CN.md`](./README_CN.md)
 
-- 本地 skills：`~/.agents/skills`
-- skills lockfile：`~/.agents/.skill-lock.json`
-- Claude settings：`~/.claude/settings.json`
-- installed plugins：`~/.claude/plugins/installed_plugins.json`
-- installed plugin cache：`~/.claude/plugins/cache`
-- marketplace plugins / MCP：`~/.claude/plugins/known_marketplaces.json` 和 `~/.claude/plugins/marketplaces`
-- 内置工具静态 catalog
+## Features
 
-## 快速开始
+Claude Skills builds a unified inventory across multiple Claude-related sources and helps answer questions such as:
+
+- What skills, plugins, MCP servers, and builtin tools are present?
+- Which capabilities are actually installed locally?
+- Which capabilities are enabled right now?
+- Which items are only visible in marketplace metadata?
+- Why is a capability considered callable or not callable?
+
+## Data sources
+
+Claude Skills currently scans and merges information from:
+
+- local skills: `~/.agents/skills`
+- skills lockfile: `~/.agents/.skill-lock.json`
+- Claude settings: `~/.claude/settings.json`
+- installed plugins: `~/.claude/plugins/installed_plugins.json`
+- installed plugin cache: `~/.claude/plugins/cache`
+- known marketplaces: `~/.claude/plugins/known_marketplaces.json`
+- marketplace plugin and MCP metadata under `~/.claude/plugins/marketplaces`
+- a static builtin tool catalog
+
+## Requirements
+
+- Python `3.13+`
+- A machine with some Claude-related local state under `~/.agents` and/or `~/.claude`
+
+If those directories do not exist, the CLI will still run, but the resulting inventory will be partial.
+
+## Installation
+
+If you found this repository on GitHub and want to use it locally, use one of the following approaches.
+
+### Option 1: Clone the repository and install locally
+
+Recommended if you want a local working copy, plan to inspect the code, or may modify it.
+
+```bash
+git clone https://github.com/SII-penguins/claude-skills.git
+cd claude-skills
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install .
+```
+
+Windows PowerShell activation:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+You can also clone over SSH:
+
+```bash
+git clone git@github.com:SII-penguins/claude-skills.git
+```
+
+### Option 2: Install directly from GitHub
+
+Recommended if you just want the CLI without keeping a local working copy first.
+
+```bash
+python3 -m pip install "git+https://github.com/SII-penguins/claude-skills.git"
+```
+
+If the repository is private, make sure your machine is already authenticated with GitHub.
+
+### Verify the installation
+
+After installation, verify that the command is available:
+
+```bash
+claude-skill --help
+```
+
+If the command is not found, check whether:
+
+- your virtual environment is activated
+- the package was installed into a different Python environment
+- the selected environment’s `bin` directory is on your `PATH`
+
+## Quick start
 
 ```bash
 claude-skill scan
@@ -29,33 +106,31 @@ claude-skill callable
 claude-skill doctor
 ```
 
-如果你想拿机器可读的结果，可以给大多数命令加 `--json`。
+Use `--json` on most commands when you want machine-readable output.
 
-## Commands
+## CLI reference
 
 ### `claude-skill scan`
-汇总扫描全部来源，输出总览统计。
+Scan all supported sources and print an inventory summary.
 
-适合回答：
-- 一共有多少能力
-- skill / plugin / MCP / tool 各有多少
-- installed / enabled / marketplace_only 各有多少
-- high / medium / low confidence 各有多少
+Useful for:
+- total capability counts
+- counts by kind (`skill`, `plugin`, `mcp_server`, `tool`)
+- counts by availability (`enabled`, `installed`, `marketplace_only`, `builtin`)
+- counts by confidence (`high`, `medium`, `low`)
 
-示例：
+Examples:
 
 ```bash
 claude-skill scan
 claude-skill scan --json
 ```
 
----
-
 ### `claude-skill list`
-统一列出能力，并支持筛选。
+List capabilities in a unified view with filters.
 
-常用参数：
-- `--kind`：按类型筛选，支持 `skill`、`plugin`、`mcp_server`、`tool`
+Common filters:
+- `--kind` (`skill`, `plugin`, `mcp_server`, `tool`)
 - `--installed` / `--not-installed`
 - `--enabled` / `--disabled`
 - `--callable` / `--not-callable`
@@ -64,13 +139,7 @@ claude-skill scan --json
 - `--plugin`
 - `--json`
 
-适合回答：
-- 当前有哪些 MCP server
-- 哪些能力来自某个 plugin
-- 哪些只是 marketplace 可见但未安装
-- 哪些是当前更可能可调用的本地能力
-
-示例：
+Examples:
 
 ```bash
 claude-skill list
@@ -81,28 +150,19 @@ claude-skill list --enabled
 claude-skill list --callable
 claude-skill list --marketplace-only
 claude-skill list --plugin "document-skills@anthropic-agent-skills"
-claude-skill list --category "文档与内容"
 claude-skill list --kind skill --json
 ```
 
----
-
 ### `claude-skill show <name>`
-显示单个能力的完整归并结果。
+Show the merged record for a single capability, including evidence and relationships.
 
-会展示：
-- 基本信息：kind、description、category
-- 状态：installed、enabled、callable、availability、confidence
-- reasons：为什么会被判定成这样
-- relationships：它由哪个 plugin 提供，或者和谁有关
-- evidence：证据来自哪些文件
+Useful for:
+- understanding provenance
+- understanding why something is callable or not callable
+- seeing which plugin provides a skill
+- seeing which files contributed evidence
 
-适合回答：
-- `github` 这个 MCP 到底是哪里来的
-- 某个 plugin 是否真的安装且启用
-- 某个 skill 为什么被判定为 high / medium / low
-
-示例：
+Examples:
 
 ```bash
 claude-skill show github
@@ -111,228 +171,159 @@ claude-skill show "document-skills@anthropic-agent-skills"
 claude-skill show github --json
 ```
 
-说明：
-- 对 skill，常见名字是 `pdf`、`docx`、`find-skills`
-- 对 plugin，通常用完整名，例如 `document-skills@anthropic-agent-skills`
-- 对 MCP server，常见名字如 `github`、`slack`、`stripe`
-
----
-
 ### `claude-skill callable`
-专门列出“当前最可能可调用”的能力。
+List capabilities that are most likely callable right now.
 
-它只会保留：
+This command only includes items that are:
 - `callable_now = true`
-- `confidence` 为 `high` 或 `medium`
+- `confidence = high` or `medium`
 
-适合回答：
-- 现在最值得优先尝试的能力有哪些
-- 哪些已经不是纯 marketplace 展示，而是本地/启用状态下较可信的能力
-
-示例：
+Examples:
 
 ```bash
 claude-skill callable
 claude-skill callable --json
 ```
 
----
-
 ### `claude-skill doctor`
-检查异常和歧义。
+Report anomalies and ambiguities in the inventory.
 
-当前会重点报告：
-- marketplace only 能力
-- MCP 缺失必要环境变量
-- enabled 但未安装
-- lockfile 有记录但本地内容缺失
-- skill 目录存在但缺少 `SKILL.md`
+Typical checks include:
+- marketplace-only capabilities
+- MCP servers missing required environment variables
+- enabled plugins with no local install record
+- skills recorded in the lockfile but missing locally
+- local skill directories without `SKILL.md`
 
-适合回答：
-- 为什么某个能力没有被判成 callable
-- 为什么 settings 里开了，但实际上不可用
-- 哪些地方还需要补 env / 安装 / 启用
-
-示例：
+Examples:
 
 ```bash
 claude-skill doctor
 claude-skill doctor --json
 ```
 
----
-
 ### `claude-skill export [output]`
-导出完整 JSON，便于后续接 Web / TUI / 脚本处理。
+Export the full inventory as JSON.
 
-行为：
-- 不带参数：打印到 stdout
-- 带路径参数：写入指定文件
+Behavior:
+- without an argument: writes JSON to stdout
+- with a path argument: writes JSON to the specified file
 
-示例：
+Examples:
 
 ```bash
 claude-skill export
-claude-skill export /tmp/claude-skill.json
+claude-skill export /tmp/claude-skills.json
 ```
 
-## 如何理解输出字段
+## How to read the output
 
-每个 capability 会尽量统一成这些字段：
+Each capability is normalized into a model with fields such as:
 
-- `kind`：能力类型，`skill | plugin | mcp_server | tool`
-- `installed_locally`：本地是否存在安装痕迹
-- `enabled`：是否在 settings 中启用，或根据上下文可视为启用
-- `callable_now`：当前是否较可能可调用
-- `availability`：
-  - `enabled`
-  - `installed`
-  - `marketplace_only`
-  - `builtin`
-  - `unknown`
-- `confidence`：
-  - `high`
-  - `medium`
-  - `low`
-- `reasons`：为什么被判成这个状态
-- `sources`：证据来自哪些文件
-- `relationships`：例如某个 skill 由哪个 plugin 提供
+- `kind`: `skill | plugin | mcp_server | tool`
+- `installed_locally`: whether local installation evidence exists
+- `enabled`: whether the capability is enabled or inferred as enabled
+- `callable_now`: whether it is likely callable now
+- `availability`: `enabled | installed | marketplace_only | builtin | unknown`
+- `confidence`: `high | medium | low`
+- `reasons`: human-readable explanation of the classification
+- `sources`: per-source evidence records
+- `relationships`: links such as “this skill is provided by this plugin”
 
-## 常见使用场景
+## Example workflows
 
-### 看整体盘点
-```bash
-claude-skill scan
-```
-
-### 看所有 MCP server
-```bash
-claude-skill list --kind mcp_server
-```
-
-### 看某个 plugin 提供了哪些 skill
-```bash
-claude-skill list --plugin "document-skills@anthropic-agent-skills"
-```
-
-### 看 GitHub MCP 的来源和状态
-```bash
-claude-skill show github
-```
-
-### 只看当前更可能能用的能力
-```bash
-claude-skill callable
-```
-
-### 排查为什么某些能力不可用
-```bash
-claude-skill doctor
-```
-
-## 示例：`github` 和 `document-skills`
-
-### 示例 1：查看 `github`
+### Inspect the GitHub MCP definition
 
 ```bash
 claude-skill show github
 ```
 
-这个例子通常表示你在看一个 **MCP server**，而不是普通 skill 或 plugin。
+This usually shows an `mcp_server` capability sourced from marketplace metadata. If it is not installed locally, it will typically appear as:
 
-你应该重点关注这些字段：
-- `kind = mcp_server`
-- `availability = marketplace_only` 表示它目前只是 marketplace 中可见
-- `confidence = low` 表示当前不能高置信度判断为本机可直接调用
-- `callable_now = false` 表示现在不应把它当作“已经可用”
-- `relationships` 里通常会看到它来自某个 plugin，例如 `github@claude-plugins-official`
-- `sources` 里会显示它来自某个 `.mcp.json`
+- `availability = marketplace_only`
+- `confidence = low`
+- `callable_now = false`
 
-如果你用 JSON 查看：
+This is useful for understanding the difference between:
+- visible in metadata
+- actually available on the current machine
 
-```bash
-claude-skill show github --json
-```
-
-在当前机器上，你会看到它大致反映这些事实：
-- 来源是 marketplace 中的 GitHub MCP 定义
-- 不是本地已安装并启用的 MCP
-- 它会声明需要的环境变量，例如 `GITHUB_PERSONAL_ACCESS_TOKEN`
-- 因此它会被识别为“可见，但当前不算可调用”
-
-这个例子适合用来理解：
-- marketplace 可见 ≠ 本机已经可用
-- 有定义 ≠ 当前会话就能调用
-
----
-
-### 示例 2：查看 `document-skills@anthropic-agent-skills`
+### Inspect an installed and enabled plugin
 
 ```bash
 claude-skill show "document-skills@anthropic-agent-skills"
 ```
 
-这个例子通常表示你在看一个 **plugin**。
+On a machine where it is installed and enabled, you should typically expect:
 
-你应该重点关注这些字段：
-- `kind = plugin`
-- `installed_locally = true` 表示本地有安装记录
-- `enabled = true` 表示在 Claude settings 中已启用
-- `callable_now = true` 表示它当前很可能可用
+- `installed_locally = true`
+- `enabled = true`
+- `callable_now = true`
 - `availability = enabled`
 - `confidence = high`
 
-在当前机器上，这个例子会反映这些事实：
-- plugin 已安装
-- plugin 已启用
-- 它提供的一批打包 skills 可以从 installed cache 中被扫描到
-
-如果你想继续看它提供了哪些能力：
+To list capabilities provided by that plugin:
 
 ```bash
 claude-skill list --plugin "document-skills@anthropic-agent-skills"
 ```
 
-在当前机器上，这会列出这类能力，例如：
-- `pdf`
-- `docx`
-- `frontend-design`
-- 以及同一插件缓存里扫描到的其他 skills
-
-如果你再深入看某个 skill：
+To inspect one bundled skill in detail:
 
 ```bash
 claude-skill show pdf
 ```
 
-你会更容易理解一条 skill 是如何被判定为：
-- 来自某个 plugin
-- 当前可调用
-- 为什么是 `high` 或 `medium` confidence
+## Security and privacy
 
-这个例子适合用来理解：
-- plugin 已安装 + 已启用时，plugin 自带 skill 的 callable 置信度通常更高
-- `show plugin` 和 `list --plugin ...` 应该配合使用
+Claude Skills is designed to redact sensitive values in its output.
 
-## 安全说明
-
-- 输出会对敏感信息做脱敏
-- 不会直接回显 settings / MCP 配置里的真实 token
-- 像 `${GITHUB_PERSONAL_ACCESS_TOKEN}` 这样的环境变量占位符会保留，方便判断缺少哪些配置
+- secrets from settings and MCP configs are not printed in plaintext
+- auth placeholders such as `${GITHUB_PERSONAL_ACCESS_TOKEN}` are preserved when useful for diagnosis
+- evidence is stored per source so provenance remains visible without exposing secrets
 
 ## Development
 
+Install in editable mode with development dependencies:
+
 ```bash
+git clone https://github.com/SII-penguins/claude-skills.git
+cd claude-skills
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .[dev]
+python3 -m pip install --upgrade pip
+python3 -m pip install -e .[dev]
 pytest
 ```
 
-本地开发时也可以直接运行：
+Run the CLI locally during development:
 
 ```bash
 claude-skill --help
 claude-skill scan
 claude-skill list --kind skill
 ```
+
+## Troubleshooting
+
+### `claude-skill: command not found`
+
+Common causes:
+- the virtual environment is not activated
+- the package was installed into a different Python environment
+- the environment’s `bin` directory is not on your `PATH`
+
+### The inventory looks incomplete
+
+Check whether these paths exist on your machine:
+
+- `~/.agents/skills`
+- `~/.agents/.skill-lock.json`
+- `~/.claude/settings.json`
+- `~/.claude/plugins/installed_plugins.json`
+
+If they do not exist, Claude Skills can only report the subset of sources that are available.
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE).
