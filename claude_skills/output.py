@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.table import Table
 
 from .models import Capability, InventoryIssue, InventoryReport
+from .recommendation import CapabilityRecommendation
 from .utils import pretty_json
 
 console = Console()
@@ -70,6 +71,34 @@ def render_capabilities_table(capabilities: list[Capability], *, title: str | No
         )
 
     console.print(table)
+
+
+def render_recommendations_table(recommendations: list[CapabilityRecommendation], *, query: str) -> None:
+    if not recommendations:
+        console.print(f"No relevant capabilities found for: {query}")
+        return
+
+    table = Table(title=f'Recommendations for "{query}"')
+    table.add_column("Name")
+    table.add_column("Kind")
+    table.add_column("Availability")
+    table.add_column("Confidence")
+    table.add_column("Score", justify="right")
+    table.add_column("Why recommended")
+
+    for recommendation in recommendations:
+        why_lines = [*recommendation.match_reasons[:2], recommendation.readiness_summary]
+        table.add_row(
+            recommendation.capability.name,
+            recommendation.capability.kind.value,
+            recommendation.capability.availability.value,
+            recommendation.capability.confidence.value,
+            str(recommendation.score),
+            "\n".join(why_lines),
+        )
+
+    console.print(table)
+
 
 
 def render_capability_details(capability: Capability, related: list[Capability]) -> None:

@@ -107,6 +107,7 @@ claude-skill --help
 ```bash
 claude-skill scan
 claude-skill list --kind skill
+claude-skill recommend "I need to inspect a PDF and extract tables"
 claude-skill show github
 claude-skill callable
 claude-skill doctor
@@ -157,6 +158,30 @@ claude-skill list --callable
 claude-skill list --marketplace-only
 claude-skill list --plugin "document-skills@anthropic-agent-skills"
 claude-skill list --kind skill --json
+```
+
+### `claude-skill recommend <query>`
+根据自然语言任务描述或诊断问题，推荐最相关的 capability。
+
+这个命令会基于确定性的启发式规则，同时考虑“相关性”和“当前可用性”，适合回答例如：
+
+- 某个任务现在该用什么能力
+- 当前机器上有什么可用于 spreadsheet、PDF、GitHub 的能力
+- 为什么某个能力现在不能用
+
+常用参数：
+- `--kind`：只看 `skill`、`plugin`、`mcp_server`、`tool`
+- `--top`：控制返回多少条推荐
+- `--callable-first`：进一步优先当前可调用项
+- `--json`：输出机器可读 JSON
+
+示例：
+
+```bash
+claude-skill recommend "I need to inspect a PDF and extract tables"
+claude-skill recommend "what can I use for spreadsheets?"
+claude-skill recommend "why can't I use github right now"
+claude-skill recommend "I need help with spreadsheets" --json
 ```
 
 ### `claude-skill show <name>`
@@ -240,6 +265,37 @@ claude-skill export /tmp/claude-skills.json
 - `reasons`：文字化解释为什么被判成当前状态
 - `sources`：按来源拆分的证据记录
 - `relationships`：例如“这个 skill 由哪个 plugin 提供”
+
+## Companion skill
+
+仓库里还包含了一个随仓库版本管理的 companion skill：
+
+- `skills/claude-skills-companion/SKILL.md`
+
+它的作用是让 Claude 在用户提出这类问题时，优先通过 `claude-skill` CLI 做能力发现、推荐和诊断：
+
+- 当前机器上有哪些 Claude 相关能力
+- 本机是否有 PDF / docx / xlsx / github / MCP 支持
+- 为什么某个能力现在不可用
+- 当前最适合这个任务、而且真的可用的能力是什么
+
+这个 companion skill 常用的底层命令包括：
+
+```bash
+claude-skill recommend "I need to extract tables from a PDF"
+claude-skill show github
+claude-skill doctor
+claude-skill list --kind skill
+```
+
+如果你想把它安装到本地 `~/.agents/skills`，可以直接复制：
+
+```bash
+mkdir -p ~/.agents/skills
+cp -R skills/claude-skills-companion ~/.agents/skills/
+```
+
+你也可以只把它作为 repo asset 保留在仓库中统一管理。
 
 ## 示例用法
 

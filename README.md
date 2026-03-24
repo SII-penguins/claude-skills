@@ -101,6 +101,7 @@ If the command is not found, check whether:
 ```bash
 claude-skill scan
 claude-skill list --kind skill
+claude-skill recommend "I need to inspect a PDF and extract tables"
 claude-skill show github
 claude-skill callable
 claude-skill doctor
@@ -151,6 +152,30 @@ claude-skill list --callable
 claude-skill list --marketplace-only
 claude-skill list --plugin "document-skills@anthropic-agent-skills"
 claude-skill list --kind skill --json
+```
+
+### `claude-skill recommend <query>`
+Recommend the most relevant capabilities for a natural-language task or diagnosis question.
+
+This command ranks capabilities using deterministic heuristics over relevance and current availability. It is intended to answer questions such as:
+
+- which capability should I use for a task?
+- what is available right now for spreadsheets, PDFs, or GitHub?
+- why can’t I use a capability right now?
+
+Common options:
+- `--kind` to limit recommendations to `skill`, `plugin`, `mcp_server`, or `tool`
+- `--top` to control how many results are returned
+- `--callable-first` to further favor capabilities that are callable now
+- `--json` for machine-readable output
+
+Examples:
+
+```bash
+claude-skill recommend "I need to inspect a PDF and extract tables"
+claude-skill recommend "what can I use for spreadsheets?"
+claude-skill recommend "why can't I use github right now"
+claude-skill recommend "I need help with spreadsheets" --json
 ```
 
 ### `claude-skill show <name>`
@@ -229,6 +254,37 @@ Each capability is normalized into a model with fields such as:
 - `reasons`: human-readable explanation of the classification
 - `sources`: per-source evidence records
 - `relationships`: links such as “this skill is provided by this plugin”
+
+## Companion skill
+
+This repository also includes a repo-contained companion skill at:
+
+- `skills/claude-skills-companion/SKILL.md`
+
+Its purpose is to let Claude use `claude-skill` as a discovery and diagnosis layer when the user asks questions like:
+
+- what Claude-related capabilities are available on this machine
+- whether PDF / docx / xlsx / github / MCP support exists locally
+- why a capability is unavailable right now
+- which currently available capability is the best fit for a task
+
+Typical commands used by the companion skill:
+
+```bash
+claude-skill recommend "I need to extract tables from a PDF"
+claude-skill show github
+claude-skill doctor
+claude-skill list --kind skill
+```
+
+To use it as a local skill, copy the directory into your local skills path:
+
+```bash
+mkdir -p ~/.agents/skills
+cp -R skills/claude-skills-companion ~/.agents/skills/
+```
+
+You can also keep it in-repo and version it alongside the CLI.
 
 ## Example workflows
 
